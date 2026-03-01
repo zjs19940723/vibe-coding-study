@@ -3,39 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>待办事项</title>
+    <title>番茄钟</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <div class="todo-app">
-            <h1>我的待办事项</h1>
+        <div class="timer-app">
+            <h1>番茄钟</h1>
 
-            <div class="input-section">
-                <input
-                    type="text"
-                    id="taskInput"
-                    placeholder="添加新的任务..."
-                    maxlength="100"
-                >
-                <button id="addBtn" class="add-btn">添加</button>
-            </div>
-
-            <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-label">未完成</span>
-                    <span id="pendingCount" class="stat-value">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">已完成</span>
-                    <span id="completedCount" class="stat-value">0</span>
+            <div class="timer-display">
+                <div class="time-circle">
+                    <div class="time-text">
+                        <span id="minutes">25</span>
+                        <span class="separator">:</span>
+                        <span id="seconds">00</span>
+                    </div>
                 </div>
             </div>
 
-            <ul id="taskList" class="task-list"></ul>
+            <div class="controls">
+                <button id="startBtn" class="btn btn-start">开始</button>
+                <button id="pauseBtn" class="btn btn-pause" disabled>暂停</button>
+                <button id="resetBtn" class="btn btn-reset">重置</button>
+            </div>
+
+            <div class="status">
+                <span id="status">准备就绪</span>
+            </div>
         </div>
     </div>
 
+    <audio id="notificationSound"></audio>
     <script src="script.js"></script>
 </body>
 </html>

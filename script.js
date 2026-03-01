@@ -1,115 +1,97 @@
-const taskInput = document.getElementById('taskInput');
-const addBtn = document.getElementById('addBtn');
-const taskList = document.getElementById('taskList');
-const pendingCount = document.getElementById('pendingCount');
-const completedCount = document.getElementById('completedCount');
+const minutesDisplay = document.getElementById('minutes');
+const secondsDisplay = document.getElementById('seconds');
+const startBtn = document.getElementById('startBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const resetBtn = document.getElementById('resetBtn');
+const statusText = document.getElementById('status');
+const notificationSound = document.getElementById('notificationSound');
 
-let tasks = [];
+let totalSeconds = 25 * 60;
+let remainingSeconds = totalSeconds;
+let isRunning = false;
+let intervalId = null;
 
-function loadTasks() {
-    const savedTasks = localStorage.getItem('tasks');
-    if (savedTasks) {
-        tasks = JSON.parse(savedTasks);
-        renderTasks();
-    }
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+function updateDisplay() {
+    const minutes = Math.floor(remainingSeconds / 60);
+    const seconds = remainingSeconds % 60;
+
+    minutesDisplay.textContent = String(minutes).padStart(2, '0');
+    secondsDisplay.textContent = String(seconds).padStart(2, '0');
 }
 
-function saveTasks() {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-}
+function playNotificationSound() {
+    const now = audioContext.currentTime;
+    const notes = [800, 600, 800];
+    const duration = 0.3;
 
-function addTask() {
-    const taskText = taskInput.value.trim();
+    notes.forEach((frequency, index) => {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
 
-    if (taskText === '') {
-        taskInput.focus();
-        return;
-    }
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
 
-    const newTask = {
-        id: Date.now(),
-        text: taskText,
-        completed: false
-    };
+        osc.frequency.value = frequency;
+        osc.type = 'sine';
 
-    tasks.push(newTask);
-    saveTasks();
-    renderTasks();
+        gain.gain.setValueAtTime(0.3, now + index * 0.35);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + index * 0.35 + duration);
 
-    taskInput.value = '';
-    taskInput.focus();
-}
-
-function toggleTask(id) {
-    const task = tasks.find(t => t.id === id);
-    if (task) {
-        task.completed = !task.completed;
-        saveTasks();
-        renderTasks();
-    }
-}
-
-function deleteTask(id) {
-    tasks = tasks.filter(t => t.id !== id);
-    saveTasks();
-    renderTasks();
-}
-
-function updateStats() {
-    const pending = tasks.filter(t => !t.completed).length;
-    const completed = tasks.filter(t => t.completed).length;
-
-    pendingCount.textContent = pending;
-    completedCount.textContent = completed;
-}
-
-function renderTasks() {
-    taskList.innerHTML = '';
-
-    if (tasks.length === 0) {
-        taskList.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">📝</div>
-                <div class="empty-state-text">暂无任务，添加一个开始吧！</div>
-            </div>
-        `;
-        updateStats();
-        return;
-    }
-
-    tasks.forEach(task => {
-        const li = document.createElement('li');
-        li.className = `task-item ${task.completed ? 'completed' : ''}`;
-
-        li.innerHTML = `
-            <input
-                type="checkbox"
-                class="task-checkbox"
-                ${task.completed ? 'checked' : ''}
-                onchange="toggleTask(${task.id})"
-            >
-            <span class="task-text">${escapeHtml(task.text)}</span>
-            <button class="delete-btn" onclick="deleteTask(${task.id})">删除</button>
-        `;
-
-        taskList.appendChild(li);
+        osc.start(now + index * 0.35);
+        osc.stop(now + index * 0.35 + duration);
     });
-
-    updateStats();
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+function startTimer() {
+    if (isRunning) return;
+
+    isRunning = true;
+    startBtn.disabled = true;
+    pauseBtn.disabled = false;
+    statusText.textContent = '计时中...';
+
+    intervalId = setInterval(() => {
+        remainingSeconds--;
+        updateDisplay();
+
+        if (remainingSeconds <= 0) {
+            clearInterval(intervalId);
+            isRunning = false;
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            statusText.textContent = '时间到!';
+            statusText.classList.add('completed');
+            playNotificationSound();
+        }
+    }, 1000);
 }
 
-addBtn.addEventListener('click', addTask);
+function pauseTimer() {
+    if (!isRunning) return;
 
-taskInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        addTask();
-    }
-});
+    isRunning = false;
+    clearInterval(intervalId);
+    startBtn.disabled = false;
+    pauseBtn.disabled = true;
+    statusText.textContent = '已暂停';
+    statusText.classList.remove('completed');
+}
 
-loadTasks();
+function resetTimer() {
+    clearInterval(intervalId);
+    isRunning = false;
+    remainingSeconds = totalSeconds;
+    startBtn.disabled = false;
+    pauseBtn.disabled = true;
+    statusText.textContent = '准备就绪';
+    statusText.classList.remove('completed');
+    updateDisplay();
+}
+
+startBtn.addEventListener('click', startTimer);
+pauseBtn.addEventListener('click', pauseTimer);
+resetBtn.addEventListener('click', resetTimer);
+
+updateDisplay();
